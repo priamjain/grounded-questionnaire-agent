@@ -266,6 +266,35 @@ counts.
 
 **https://drive.google.com/file/d/1uSQPbQIak74pSkwiZeCI8FwglbyEWyBc/view?usp=drive_link**
 
+### Reproduce it yourself
+
+Everything the video uses is here. Sign in at the live demo, paste the twelve
+policy links into **Sources**, and drop the questionnaire into **Questions**.
+
+**Policy documents** — 12 published Notion pages (the `?source=copy_link` form
+works as-is; the app rewrites them to their published address):
+
+```
+https://app.notion.com/p/cheerio-api-doc/General-Controls-Policy-e9afc3c08d1b4c3b8ed52aa7104134fc?source=copy_link
+https://app.notion.com/p/cheerio-api-doc/Information-Security-Policy-dfbc6a3ff4104db2a83a9dce69a7971a?source=copy_link
+https://app.notion.com/p/cheerio-api-doc/System-Planning-Acceptance-Policy-a723b6c92ed8492fb832a028aee684d1?source=copy_link
+https://app.notion.com/p/cheerio-api-doc/Data-Security-Policy-f1bac933a93841c0bac9244b497567fc?source=copy_link
+https://app.notion.com/p/cheerio-api-doc/Business-Continuity-Management-and-Disaster-Recovery-Policy-4786e06a738647f4960c4cd1a541f7a6?source=copy_link
+https://app.notion.com/p/cheerio-api-doc/Personnel-Security-Policy-183bf135bd73403f9e6edfb64a640e45?source=copy_link
+https://app.notion.com/p/cheerio-api-doc/Email-Usage-Policy-9f2e658e3c9e4caf807b1476532e7298?source=copy_link
+https://app.notion.com/p/cheerio-api-doc/Communications-Operations-Management-Policy-142d32dd2c7d447db2048e0333a630de?source=copy_link
+https://app.notion.com/p/cheerio-api-doc/Service-Delivery-Policy-c0dcb4008aec4a79ab2aba1e6706f07e?source=copy_link
+https://app.notion.com/p/cheerio-api-doc/Privacy-Policy-28f03d9e204c49d6b7fe5f2649f6abbc?source=copy_link
+https://app.notion.com/p/cheerio-api-doc/Work-from-Home-Security-Policy-64f6d4ea89e84674bacfd0f8cbc0ff8b?source=copy_link
+https://www.notion.so/cheerio-api-doc/Data-handling-practices-at-Cheerio-8d097a900d654aa3b785cf5875842d2c
+```
+
+**Questionnaire** — 24 questions, one per row:
+[**test.csv**](https://github.com/priamjain/grounded-questionnaire-agent/blob/main/test.csv)
+&middot; [direct download](https://raw.githubusercontent.com/priamjain/grounded-questionnaire-agent/main/test.csv)
+
+Expected result: **22 ANSWERED / 2 ESCALATE**.
+
 What the video shows, using the files in this repo:
 
 1. **Log in**, land on New Run.
