@@ -264,9 +264,9 @@ counts.
 
 ## 05 · Demo video
 
-**Link:** _(≤ 2 minutes — add before submitting)_
+**https://drive.google.com/file/d/1uSQPbQIak74pSkwiZeCI8FwglbyEWyBc/view?usp=drive_link**
 
-Suggested run of show, using the files in this repo:
+What the video shows, using the files in this repo:
 
 1. **Log in**, land on New Run.
 2. **Paste the 12 Notion policy links** (the `?source=copy_link` URLs work as-is
@@ -282,66 +282,3 @@ Suggested run of show, using the files in this repo:
    rather hand a human two gaps than invent two answers.*
 7. **Email the results**, then click again to show the double-send is a no-op.
 8. Close on `make eval` and the injection row.
-
----
-
-## 06 · Deployment
-
-Live at **https://d13ku3eumm26n5.cloudfront.net** (credentials at the top).
-
-```
-viewer ──HTTPS──► CloudFront ──HTTP──► EC2 :80 nginx ──► 127.0.0.1:8000 uvicorn
-```
-
-| Piece | What it is |
-|---|---|
-| EC2 | `t3.small`, Amazon Linux 2023, `ap-south-1`, 16GB gp3 |
-| Process | `deploy/questionnaire.service` — systemd, `Restart=always`, runs as the unprivileged `app` user, env from `/opt/questionnaire/.env` |
-| Reverse proxy | `deploy/nginx.conf` — `proxy_buffering off` so SSE rows stream instead of arriving in one lump; 600s timeouts so a 54-question run doesn't get cut off |
-| CDN / TLS | CloudFront distribution `E19A8L9S4V57H2`, viewer policy `redirect-to-https`, all seven HTTP methods allowed, **caching disabled** and `AllViewerExceptHostHeader` forwarded — this app has no cacheable responses and the session cookie must reach the origin intact |
-
-**The origin is not reachable from the internet.** Port 80 on the instance is
-open only to the `com.amazonaws.global.cloudfront.origin-facing` managed prefix
-list, so requests must arrive through CloudFront; port 22 is open to one admin
-address. uvicorn itself binds `127.0.0.1` and never listens publicly.
-
-TLS terminates at CloudFront, so the instance runs with `COOKIE_SECURE=1` and
-the session cookie carries `Secure` in addition to `HttpOnly` and `SameSite=Lax`.
-
-The frontend is built locally and shipped inside the release tarball, so the
-server needs no Node toolchain — just Python 3.11 and nginx.
-
-### Verified on the live stack
-
-- `POST /api/login` over HTTPS returns a cookie carrying `Secure`; `/api/runs`
-  without it returns 401.
-- A real two-question run against a Notion source completed through CloudFront:
-  rows arrived over SSE at **+4.7s** and **+6.4s** — streaming incrementally,
-  not buffered into one lump at the end — and produced one ANSWERED and one
-  ESCALATE, which is the intended behaviour for those two questions.
-- Plain `http://` redirects (301) to `https://`.
-
-### Redeploy
-
-```bash
-make build
-tar czf app.tgz --exclude=__pycache__ backend eval fixtures test.csv deploy
-scp -i <key.pem> app.tgz ec2-user@<instance>:/tmp/
-ssh -i <key.pem> ec2-user@<instance> \
-  'sudo tar xzf /tmp/app.tgz -C /opt/questionnaire && \
-   sudo chown -R app:app /opt/questionnaire && \
-   sudo systemctl restart questionnaire'
-```
-
-Nothing is cached at the edge, so a restart is visible immediately — no
-invalidation step.
-
-### Known deployment limits
-
-- **No Elastic IP** (account limit reached), so CloudFront points at the
-  instance's public DNS name. Stopping and starting the instance changes that
-  name and the origin must be updated. A reboot is fine.
-- **No custom domain**, so the URL is the `*.cloudfront.net` one and TLS uses
-  CloudFront's default certificate.
-- `data/runs.jsonl` lives on the instance's EBS volume. Runs survive a restart,
-  not a terminate.
