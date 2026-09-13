@@ -5,3 +5,4 @@ itsdangerous==2.2.0
 selectolax==0.3.27
 anthropic==0.42.0
 python-multipart==0.0.20
+email-validator==2.2.0

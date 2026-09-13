@@ -4,10 +4,12 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import auth, config
+from . import auth, config, runs, store
 
 app = FastAPI(title="Grounded Questionnaire Agent", docs_url=None, redoc_url=None)
 app.middleware("http")(auth.session_middleware)
+app.include_router(runs.router)
+store.load_from_disk()
 
 
 class LoginBody(BaseModel):

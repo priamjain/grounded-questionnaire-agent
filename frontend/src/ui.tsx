@@ -52,3 +52,62 @@ export function FieldError({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
+const PILL: Record<string, string> = {
+  ANSWERED: 'border-ok/25 bg-ok-faint text-ok',
+  ESCALATE: 'border-warn/25 bg-warn-faint text-warn',
+  BLOCKED: 'border-bad/25 bg-bad-faint text-bad',
+}
+
+export function StatusPill({ status }: { status: string }) {
+  return (
+    <span
+      className={
+        'inline-flex items-center h-5 px-2 rounded border text-[11px] font-medium ' +
+        `tracking-wide whitespace-nowrap ${PILL[status] ?? 'border-line bg-canvas text-ink-muted'}`
+      }
+    >
+      {status}
+    </span>
+  )
+}
+
+export function Toast({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+  return (
+    <div
+      role="status"
+      className="fixed bottom-6 right-6 z-50 flex items-center gap-3 pl-4 pr-2 py-3
+                 bg-ink text-white text-[13px] rounded-md"
+    >
+      <span>{message}</span>
+      <button
+        onClick={onDismiss}
+        className="h-6 px-2 rounded text-white/60 hover:text-white hover:bg-white/10"
+      >
+        Dismiss
+      </button>
+    </div>
+  )
+}
+
+/** Shimmering placeholder row, used while the run is still in flight. */
+export function SkeletonRow() {
+  return (
+    <tr className="border-b border-line">
+      {[40, 20, 70, 60, 24].map((w, i) => (
+        <td key={i} className="px-4 py-3 align-top">
+          <div
+            className="h-3 rounded bg-line relative overflow-hidden"
+            style={{ width: `${w}%` }}
+          >
+            <div
+              className="absolute inset-0 -translate-x-full bg-gradient-to-r
+                         from-transparent via-white/70 to-transparent"
+              style={{ animation: 'shimmer 1.4s infinite' }}
+            />
+          </div>
+        </td>
+      ))}
+    </tr>
+  )
+}

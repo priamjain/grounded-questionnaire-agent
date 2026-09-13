@@ -1,12 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { api } from './api'
 import Login from './Login'
-import Shell from './Shell'
+import NewRun from './NewRun'
+import RunView from './RunView'
+import Shell, { type RunSummary } from './Shell'
 
 type Auth = { state: 'checking' } | { state: 'out' } | { state: 'in'; username: string }
 
 export default function App() {
   const [auth, setAuth] = useState<Auth>({ state: 'checking' })
+  const [runs, setRuns] = useState<RunSummary[]>([])
+  const [activeRunId, setActiveRunId] = useState<string | null>(null)
 
   // Session lives in an HttpOnly cookie, so ask the server who we are.
   useEffect(() => {
@@ -14,6 +18,16 @@ export default function App() {
       .then((me) => setAuth({ state: 'in', username: me.username }))
       .catch(() => setAuth({ state: 'out' }))
   }, [])
+
+  const refreshRuns = useCallback(() => {
+    api<{ runs: RunSummary[] }>('/api/runs')
+      .then((r) => setRuns(r.runs))
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    if (auth.state === 'in') refreshRuns()
+  }, [auth.state, refreshRuns])
 
   if (auth.state === 'checking') {
     return (
@@ -30,18 +44,31 @@ export default function App() {
   return (
     <Shell
       username={auth.username}
-      runs={[]}
-      activeRunId={null}
-      onSelectRun={() => {}}
-      onNewRun={() => {}}
-      onLogout={() => setAuth({ state: 'out' })}
+      runs={runs}
+      activeRunId={activeRunId}
+      onSelectRun={setActiveRunId}
+      onNewRun={() => setActiveRunId(null)}
+      onLogout={() => {
+        setAuth({ state: 'out' })
+        setRuns([])
+        setActiveRunId(null)
+      }}
     >
-      <div className="h-14 border-b border-line bg-surface flex items-center px-6">
-        <h1 className="text-[13px] font-semibold text-ink">New run</h1>
-      </div>
-      <div className="p-6 text-[13px] text-ink-muted">
-        Protected shell. The run form lands here next.
-      </div>
+      {activeRunId ? (
+        <RunView key={activeRunId} runId={activeRunId} />
+      ) : (
+        <>
+          <div className="h-14 border-b border-line bg-surface flex items-center px-6">
+            <h1 className="text-[13px] font-semibold text-ink">New run</h1>
+          </div>
+          <NewRun
+            onStarted={(runId) => {
+              setActiveRunId(runId)
+              refreshRuns()
+            }}
+          />
+        </>
+      )}
     </Shell>
   )
 }
