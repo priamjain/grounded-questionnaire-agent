@@ -310,4 +310,3 @@ What the video shows, using the files in this repo:
    policies are silent on packet capture and DLP. *This is the point: it would
    rather hand a human two gaps than invent two answers.*
 7. **Email the results**, then click again to show the double-send is a no-op.
-8. Close on `make eval` and the injection row.
