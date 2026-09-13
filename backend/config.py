@@ -20,7 +20,6 @@ MODEL = "claude-sonnet-4-6"
 SESSION_COOKIE = "qa_session"
 SESSION_MAX_AGE = 12 * 60 * 60  # 12 hours
 
-
 def _load_dotenv() -> None:
     """Minimal .env loader. Existing environment always wins."""
     env_path = ROOT / ".env"
@@ -51,3 +50,7 @@ def load() -> dict:
 
 
 SETTINGS = load()
+
+# Read after load() so a value in .env counts. Set COOKIE_SECURE=1 when the app
+# is served over HTTPS (behind CloudFront); off by default so local HTTP works.
+COOKIE_SECURE = os.environ.get("COOKIE_SECURE", "").strip() in {"1", "true", "yes"}

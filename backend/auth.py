@@ -43,6 +43,7 @@ def set_session_cookie(response: JSONResponse, username: str) -> None:
         max_age=config.SESSION_MAX_AGE,
         httponly=True,
         samesite="lax",
+        secure=config.COOKIE_SECURE,
         path="/",
     )
 

@@ -1,0 +1,18 @@
+[Unit]
+Description=Grounded Security Questionnaire Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=app
+WorkingDirectory=/opt/questionnaire
+EnvironmentFile=/opt/questionnaire/.env
+ExecStart=/opt/questionnaire/.venv/bin/uvicorn backend.main:app --host 127.0.0.1 --port 8000
+Restart=always
+RestartSec=3
+# The run log and data/runs.jsonl are the only writable state.
+StateDirectory=questionnaire
+
+[Install]
+WantedBy=multi-user.target
