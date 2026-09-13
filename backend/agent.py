@@ -26,7 +26,7 @@ def parse_claim(text: str) -> dict:
         return json.loads(match.group(0))
 
 
-async def answer_question(corpus: str, question: str) -> dict:
+async def answer_question(corpus: str, question: str, with_usage: bool = False):
     """One call per question, returning the model's raw claim."""
     message = await _client.messages.create(
         model=config.MODEL,
@@ -35,7 +35,13 @@ async def answer_question(corpus: str, question: str) -> dict:
         messages=[{"role": "user", "content": prompts.user_message(corpus, question)}],
     )
     text = "".join(b.text for b in message.content if b.type == "text")
-    return parse_claim(text)
+    claim = parse_claim(text)
+    if with_usage:
+        return claim, {
+            "input_tokens": message.usage.input_tokens,
+            "output_tokens": message.usage.output_tokens,
+        }
+    return claim
 
 
 async def run_pipeline(run, emit) -> None:
@@ -97,3 +103,28 @@ async def run_pipeline(run, emit) -> None:
             )
         run.rows.append(row)
         await emit(row)
+
+
+async def answer_naive(corpus: str, question: str) -> tuple[dict, dict]:
+    """The baseline the eval compares against.
+
+    Same model, same corpus, one call — but no grounding requirement, no
+    abstention instruction, no quote, and no verification afterwards.
+    """
+    message = await _client.messages.create(
+        model=config.MODEL,
+        max_tokens=MAX_TOKENS,
+        system=prompts.NAIVE_SYSTEM,
+        messages=[
+            {"role": "user", "content": prompts.naive_user_message(corpus, question)}
+        ],
+    )
+    text = "".join(b.text for b in message.content if b.type == "text")
+    usage = {
+        "input_tokens": message.usage.input_tokens,
+        "output_tokens": message.usage.output_tokens,
+    }
+    try:
+        return parse_claim(text), usage
+    except json.JSONDecodeError:
+        return {"answer": text, "confidence": 0.0}, usage
