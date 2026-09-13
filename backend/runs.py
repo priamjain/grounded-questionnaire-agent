@@ -5,17 +5,21 @@ import os
 import uuid
 from datetime import datetime, timezone
 
+import httpx
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import BaseModel, EmailStr, Field
 
-from . import store
+from . import mailer, store
 from .models import Run, tally
 
 router = APIRouter(prefix="/api/runs")
 
 # One queue per in-flight run; the SSE endpoint drains it.
 _queues: dict[str, asyncio.Queue] = {}
+
+# One lock per run so a double click cannot race past the sent-state check.
+_email_locks: dict[str, asyncio.Lock] = {}
 
 
 class CreateRun(BaseModel):
@@ -138,20 +142,25 @@ def _sse(payload: dict) -> str:
 
 @router.post("/{run_id}/email")
 async def send_email(run_id: str):
-    """Idempotent per run_id: a double click sends once. Resend lands in step 5."""
+    """Idempotent per run_id: a double click sends exactly once."""
     run = store.get(run_id)
     if not run:
         return JSONResponse({"detail": "Run not found"}, status_code=404)
     if run.status == "running":
-        return JSONResponse(
-            {"detail": "Run is still in progress."}, status_code=409
-        )
-    if run.email_sent_at:
-        return {"already_sent": True, "sent_at": run.email_sent_at}
+        return JSONResponse({"detail": "Run is still in progress."}, status_code=409)
+    if not run.rows:
+        return JSONResponse({"detail": "This run has no results to send."}, status_code=409)
 
-    from . import mailer
-
-    await mailer.send_results(run)
-    run.email_sent_at = _now()
-    store.checkpoint(run)
-    return {"already_sent": False, "sent_at": run.email_sent_at}
+    lock = _email_locks.setdefault(run_id, asyncio.Lock())
+    async with lock:
+        # Re-checked inside the lock: the first caller may have sent while we waited.
+        if run.email_sent_at:
+            return {"already_sent": True, "sent_at": run.email_sent_at, "to": run.email}
+        try:
+            message_id = await mailer.send_results(run)
+        except (mailer.MailError, httpx.HTTPError) as exc:
+            return JSONResponse({"detail": str(exc)[:300]}, status_code=502)
+        run.email_sent_at = _now()
+        run.email_message_id = message_id
+        store.checkpoint(run)
+    return {"already_sent": False, "sent_at": run.email_sent_at, "to": run.email}

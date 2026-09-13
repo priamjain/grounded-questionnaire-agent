@@ -13,6 +13,7 @@ export default function RunView({ runId }: { runId: string }) {
   const [filter, setFilter] = useState<Status | 'ALL'>('ALL')
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [sending, setSending] = useState(false)
+  const [sentAt, setSentAt] = useState('')
   const [toast, setToast] = useState<string | null>(null)
 
   // Load the snapshot first so a reload of a finished run renders instantly.
@@ -21,12 +22,14 @@ export default function RunView({ runId }: { runId: string }) {
     setRun(null)
     setRows([])
     setLoadError(null)
+    setSentAt('')
     setExpanded(new Set())
     api<Run>(`/api/runs/${runId}`)
       .then((r) => {
         if (cancelled) return
         setRun(r)
         setRows(r.rows)
+        setSentAt(r.email_sent_at)
         setLive(r.status === 'running')
       })
       .catch((err) =>
@@ -78,13 +81,15 @@ export default function RunView({ runId }: { runId: string }) {
   async function sendEmail() {
     setSending(true)
     try {
-      const res = await api<{ already_sent: boolean }>(`/api/runs/${runId}/email`, {
-        method: 'POST',
-      })
+      const res = await api<{ already_sent: boolean; sent_at: string; to: string }>(
+        `/api/runs/${runId}/email`,
+        { method: 'POST' },
+      )
+      setSentAt(res.sent_at)
       setToast(
         res.already_sent
-          ? `Already sent to ${run?.email}.`
-          : `Results sent to ${run?.email}.`,
+          ? `Already sent to ${res.to}.`
+          : `Results sent to ${res.to}.`,
       )
     } catch (err) {
       setToast(err instanceof ApiError ? `Send failed: ${err.message}` : 'Send failed.')
@@ -115,13 +120,18 @@ export default function RunView({ runId }: { runId: string }) {
             <span className="text-xs text-bad">Failed — {run.error}</span>
           )}
         </div>
-        <Button
-          variant="secondary"
-          disabled={sending || live || !run || rows.length === 0}
-          onClick={sendEmail}
-        >
-          {sending ? 'Sending…' : 'Send email'}
-        </Button>
+        <div className="flex items-center gap-3">
+          {sentAt && (
+            <span className="text-xs text-ink-muted">Sent to {run?.email}</span>
+          )}
+          <Button
+            variant="secondary"
+            disabled={sending || live || !run || rows.length === 0}
+            onClick={sendEmail}
+          >
+            {sending ? 'Sending…' : sentAt ? 'Resend' : 'Send email'}
+          </Button>
+        </div>
       </header>
 
       <div className="px-6 pt-6">

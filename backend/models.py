@@ -30,6 +30,7 @@ class Run:
     rows: list[Row] = field(default_factory=list)
     error: str = ""
     email_sent_at: str = ""
+    email_message_id: str = ""
     source_chars: int = 0
 
     def summary(self) -> dict:
