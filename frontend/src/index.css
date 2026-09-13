@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+/* Design tokens: neutral slate ground, one restrained accent, 8px grid. */
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+
+  --color-canvas: #f8fafc;
+  --color-surface: #ffffff;
+  --color-line: #e2e8f0;
+  --color-line-strong: #cbd5e1;
+  --color-ink: #0f172a;
+  --color-ink-muted: #64748b;
+  --color-ink-faint: #94a3b8;
+
+  --color-accent: #1d4ed8;
+  --color-accent-hover: #1e40af;
+  --color-accent-faint: #eff6ff;
+
+  --color-ok: #15803d;
+  --color-ok-faint: #f0fdf4;
+  --color-warn: #b45309;
+  --color-warn-faint: #fffbeb;
+  --color-bad: #b91c1c;
+  --color-bad-faint: #fef2f2;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
