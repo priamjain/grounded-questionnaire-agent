@@ -1,0 +1,66 @@
+Questionnaire
+Does the vendor have a formal security governance framework?
+Is there a dedicated security team or officer responsible for cybersecurity?
+Does the vendor conduct security risk assessments at least annually?
+Are security policies reviewed and updated periodically?
+Does the vendor have a formal security awareness training program?
+"Does your company have a dedicated, full-time employee or subcontracted IT staff?"
+"Does your company has a dedicated, full-time employee or subcontracted cyber security staff?"
+Does your company have a cyber security user education and awareness program?
+Does your company perform phishing email testing of its employees?
+"Is the vendor compliant with industry security standards (ISO 27001, SOC 2, etc.)?"
+Does the vendor have a legal framework for handling customer data securely?
+Does your company perform cyber security audits by objective internal employees or external 3rd parties on IT systems/devices and IT services that store or process sensitive information at least annually?
+Does the vendor have data protection agreements with sub-processors?
+"Does the vendor comply with data privacy regulations like DPDP/ISO 27701, etc.?"
+Does your company have a Computer Emergency Response Team (CERT) with a formal process to respond to cyber attacks?
+Are encryption mechanisms in place for data at rest and in transit?
+Does the vendor implement data loss prevention (DLP) controls?
+Are data backup and restoration processes tested regularly?
+Does the vendor enforce secure data disposal practices?
+Are there access restrictions for handling sensitive customer data?
+Does your company perform full packet capture?
+"Does your company protect sensitive information received from a third-party company during transmission between the owning third-party as well as other parties with whom that data is shared (i.e. Encryption, SSL/TLS connections)?"
+Do all devices that store or process sensitive information at a minimum have commercially available antivirus with current signature files?
+"Do all devices that store or process sensitive information at a minimum have all unnecessary ports and services disabled and the device is used for limited functions (ex. A device acting solely as a file server vs. a file server, FTP server, and web server)?"
+"Are all laptop devices that store sensitive information encrypted?
+Note: For IT environments with no laptop devices."
+"Do all mobile devices (e.g. Smartphone’s, tablets) that store sensitive information at a minimum have configuration management provided by a company owned centrally managed infrastructure?
+Note: For IT environments with no mobile devices
+"
+"Does the vendor have firewalls, IDS/IPS, and endpoint security measures?"
+Are security patches applied regularly and within SLA timelines?
+Does the vendor have a secure software development lifecycle (SDLC)?
+Are vulnerability scans and penetration testing performed regularly?
+"Do all mobile devices (e.g. smartphones, tablets) that store sensitive information at a minimum have the ability to remotely wipe the device?
+Note: For IT environments with no mobile devices
+"
+Does the vendor implement logging and monitoring for security events?
+"Does your company require 2-factor authentication for remote access (e.g. token used in addition to a username and password for VPN login)?
+Note: For IT environments with no remote access
+"
+Do all devices that store or process sensitive information at a minimum have a unique user name and complex password to access the system?
+Do all devices that store or process sensitive information at a minimum has access control that is configured on a least privilege model (a person only has access to the data/device that they need)?
+"Do all mobile devices (e.g. Smartphone’s, tablets) that store sensitive information at a minimum have access control to the device (complex password to access device)?
+Note: For IT environments with no mobile devices
+"
+Does the vendor have role-based access control (RBAC) implemented?
+Are privileged accounts monitored and reviewed periodically?
+Does the vendor enforce multi-factor authentication (MFA)?
+Is there a formal process for granting and revoking access?
+Are user access logs maintained and reviewed regularly?
+Does the vendor have an incident response plan?
+Are security incidents documented and analyzed for future improvements?
+Does the vendor have a dedicated incident response team?
+Has the vendor conducted incident response drills in the past year?
+Are customers notified of security incidents in a timely manner?
+Does the vendor have a business continuity and disaster recovery (BC/DR) plan?
+Is the BC/DR plan tested at least annually?
+Are critical business functions identified and prioritized?
+Are alternate data centers or recovery sites available?
+Does your company have capabilities of detecting and blocking malicious email prior to delivery to the end user?
+"Does your company control web access based on the risk (e.g. reputation, content, and security) of the sites being visited (e.g. Web Proxy Controls)?
+Note: For IT environments with no Internet connection
+"
+Do all devices that store or process sensitive information at a minimum have vulnerability scanning performed at least monthly AND are vulnerabilities being remediated in a risk based priority (highest priority vulnerabilities are fixed first)?
+Does the vendor conduct periodic risk assessments for business continuity?
