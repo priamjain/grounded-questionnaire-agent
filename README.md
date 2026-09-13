@@ -311,6 +311,16 @@ the session cookie carries `Secure` in addition to `HttpOnly` and `SameSite=Lax`
 The frontend is built locally and shipped inside the release tarball, so the
 server needs no Node toolchain — just Python 3.11 and nginx.
 
+### Verified on the live stack
+
+- `POST /api/login` over HTTPS returns a cookie carrying `Secure`; `/api/runs`
+  without it returns 401.
+- A real two-question run against a Notion source completed through CloudFront:
+  rows arrived over SSE at **+4.7s** and **+6.4s** — streaming incrementally,
+  not buffered into one lump at the end — and produced one ANSWERED and one
+  ESCALATE, which is the intended behaviour for those two questions.
+- Plain `http://` redirects (301) to `https://`.
+
 ### Redeploy
 
 ```bash
