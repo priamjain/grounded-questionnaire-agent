@@ -12,6 +12,7 @@ class Row:
     status: Status
     answer: str = ""
     source_quote: str = ""
+    source_url: str = ""  # which source the quote was found in
     confidence: float = 0.0
     reason: str = ""  # why it escalated or was blocked
 

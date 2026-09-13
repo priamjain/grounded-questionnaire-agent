@@ -6,6 +6,7 @@ export type Row = {
   status: Status
   answer: string
   source_quote: string
+  source_url: string
   confidence: number
   reason: string
 }

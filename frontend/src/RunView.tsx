@@ -219,6 +219,9 @@ export default function RunView({ runId }: { runId: string }) {
                             {open ? 'Collapse' : 'Expand'}
                           </span>
                         </button>
+                      ) : null}
+                      {row.source_quote ? (
+                        <SourceLink url={row.source_url} />
                       ) : (
                         <span className="text-ink-faint">—</span>
                       )}
@@ -279,5 +282,36 @@ function Tile({
       </div>
       <div className={`mt-1 text-2xl font-semibold tabular-nums ${color}`}>{value}</div>
     </div>
+  )
+}
+
+/** Where a verified quote was found. Only a real http(s) source becomes a link. */
+function SourceLink({ url }: { url: string }) {
+  if (!url) return null
+  const linkable = /^https?:\/\//i.test(url)
+  let label = url
+  try {
+    if (linkable) {
+      const u = new URL(url)
+      label = u.hostname.replace(/^www\./, '') + (u.pathname === '/' ? '' : u.pathname)
+    }
+  } catch {
+    label = url
+  }
+  const className = 'mt-1 block truncate text-[11px] text-ink-faint'
+  return linkable ? (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={url}
+      className={className + ' hover:text-accent hover:underline'}
+    >
+      {label}
+    </a>
+  ) : (
+    <span title={url} className={className}>
+      {label}
+    </span>
   )
 }

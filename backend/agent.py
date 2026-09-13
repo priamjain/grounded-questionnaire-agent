@@ -90,6 +90,9 @@ async def run_pipeline(run, emit) -> None:
                 status="ANSWERED",
                 answer=str(claim.get("answer", "")),
                 source_quote=str(claim.get("source_quote", "")),
+                source_url=grounding.locate_source(
+                    str(claim.get("source_quote", "")), corpus
+                ),
                 confidence=float(claim.get("confidence", 0.0)),
             )
         else:

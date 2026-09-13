@@ -33,10 +33,23 @@ def _row_html(row) -> str:
     detail = html.escape(row.answer) if row.answer else (
         f'<span style="color:#94a3b8;font-style:italic">{html.escape(row.reason)}</span>'
     )
+    source = ""
+    if row.source_quote and row.source_url:
+        safe = html.escape(row.source_url, quote=True)
+        inner = (
+            f'<a href="{safe}" style="color:#64748b">{safe}</a>'
+            if row.source_url.lower().startswith(("http://", "https://"))
+            else safe
+        )
+        source = (
+            f'<div style="margin-top:6px;font-size:11px;color:#94a3b8;'
+            f'word-break:break-all">Source: {inner}</div>'
+        )
     quote = (
         f'<div style="margin-top:8px;padding:8px 10px;background:#f8fafc;'
         f'border-left:2px solid #cbd5e1;color:#475569;font-size:12px;'
-        f'font-family:ui-monospace,Menlo,monospace">&ldquo;{html.escape(row.source_quote)}&rdquo;</div>'
+        f'font-family:ui-monospace,Menlo,monospace">&ldquo;{html.escape(row.source_quote)}&rdquo;'
+        f'</div>{source}'
         if row.source_quote
         else ""
     )

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import Papa from 'papaparse'
 import { api, ApiError } from './api'
-import { Button, FieldError, Input, Label } from './ui'
+import { Button, FieldError, Input, Label, Textarea } from './ui'
 
 type Csv = { name: string; headers: string[]; rows: string[][] }
 
@@ -9,6 +9,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function NewRun({ onStarted }: { onStarted: (runId: string) => void }) {
   const [urls, setUrls] = useState<string[]>([''])
+  const [bulk, setBulk] = useState('')
   const [csv, setCsv] = useState<Csv | null>(null)
   const [csvError, setCsvError] = useState<string | null>(null)
   const [column, setColumn] = useState(0)
@@ -25,6 +26,13 @@ export default function NewRun({ onStarted }: { onStarted: (runId: string) => vo
   const emailValid = EMAIL_RE.test(email.trim())
   const ready = cleanUrls.length > 0 && questions.length > 0 && emailValid
 
+  function splitUrls(value: string): string[] {
+    return value
+      .split(/[\n,\s]+/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+  }
+
   /** Pasting several lines into one row splits into one row per line. */
   function setUrlAt(index: number, value: string) {
     const parts = value.split(/[\n,]+/).map((p) => p.trim())
@@ -34,6 +42,17 @@ export default function NewRun({ onStarted }: { onStarted: (runId: string) => vo
       else next[index] = value
       return next.length ? next : ['']
     })
+  }
+
+  function addBulk() {
+    const parts = splitUrls(bulk)
+    if (!parts.length) return
+    setUrls((prev) => {
+      const kept = prev.filter((u) => u.trim())
+      const merged = [...kept, ...parts]
+      return merged.filter((u, i) => merged.indexOf(u) === i)
+    })
+    setBulk('')
   }
 
   function parseFile(file: File) {
@@ -120,6 +139,34 @@ export default function NewRun({ onStarted }: { onStarted: (runId: string) => vo
         >
           + Add source
         </Button>
+
+        <div className="mt-5 pt-5 border-t border-line">
+          <Label hint="Separated by commas, spaces or newlines">Or paste a list</Label>
+          <Textarea
+            value={bulk}
+            onChange={(e) => setBulk(e.target.value)}
+            onPaste={(e) => {
+              // A paste into an empty box is almost always the whole list.
+              const text = e.clipboardData.getData('text')
+              if (bulk.trim() || splitUrls(text).length < 2) return
+              e.preventDefault()
+              setBulk(text)
+            }}
+            rows={3}
+            spellCheck={false}
+            placeholder="https://example.com/a, https://example.com/b"
+          />
+          <div className="mt-2 flex items-center gap-3">
+            <Button variant="secondary" disabled={!splitUrls(bulk).length} onClick={addBulk}>
+              Add to sources
+            </Button>
+            {bulk.trim() && (
+              <span className="text-xs text-ink-faint">
+                {splitUrls(bulk).length} link{splitUrls(bulk).length === 1 ? '' : 's'} detected
+              </span>
+            )}
+          </div>
+        </div>
       </section>
 
       {/* Questions CSV */}

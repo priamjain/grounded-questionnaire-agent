@@ -54,6 +54,29 @@ def row_key(run_id: str, question: str) -> str:
     return hashlib.sha256(f"{run_id}{normalize(question)}".encode()).hexdigest()
 
 
+_SOURCE_RE = re.compile(r"^--- SOURCE: (.+?) ---$", re.M)
+
+
+def locate_source(quote: str, corpus: str) -> str:
+    """Which source the quote came from, using the same substring rule.
+
+    Returns "" when the corpus is unlabelled or the quote straddles two
+    sections — better to show no attribution than the wrong one.
+    """
+    marks = list(_SOURCE_RE.finditer(corpus))
+    if not marks:
+        return ""
+    needle = normalize(quote)
+    if not needle:
+        return ""
+    hits = []
+    for i, mark in enumerate(marks):
+        end = marks[i + 1].start() if i + 1 < len(marks) else len(corpus)
+        if needle in normalize(corpus[mark.end():end]):
+            hits.append(mark.group(1).strip())
+    return hits[0] if len(hits) == 1 else ""
+
+
 def verify(claim: dict, corpus: str) -> tuple[str, str]:
     """Decide the row's status from the model's claim.
 

@@ -1,5 +1,5 @@
 /** Shared primitives. Subtle 1px borders, no heavy shadows, 8px grid. */
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, InputHTMLAttributes, TextareaHTMLAttributes, ReactNode } from 'react'
 
 export function Button({
   variant = 'primary',
@@ -25,6 +25,22 @@ export function Input({ className = '', ...props }: InputHTMLAttributes<HTMLInpu
     <input
       className={
         'h-9 w-full px-3 text-[13px] bg-surface text-ink rounded-md border border-line-strong ' +
+        'placeholder:text-ink-faint focus:border-accent focus:outline-none ' +
+        `focus:ring-2 focus:ring-accent/15 ${className}`
+      }
+      {...props}
+    />
+  )
+}
+
+export function Textarea({
+  className = '',
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  return (
+    <textarea
+      className={
+        'w-full px-3 py-2 text-[13px] leading-5 bg-surface text-ink rounded-md border border-line-strong ' +
         'placeholder:text-ink-faint focus:border-accent focus:outline-none ' +
         `focus:ring-2 focus:ring-accent/15 ${className}`
       }
