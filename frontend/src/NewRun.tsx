@@ -1,15 +1,85 @@
 import { useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import Papa from 'papaparse'
 import { api, ApiError } from './api'
-import { Button, FieldError, Input, Label, Textarea } from './ui'
+import { Button, FieldError, Input, Textarea } from './ui'
 
 type Csv = { name: string; headers: string[]; rows: string[][] }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+/** A numbered step with a rail down the left, marked complete once satisfied. */
+function Step({
+  n,
+  title,
+  hint,
+  done,
+  count,
+  last = false,
+  children,
+}: {
+  n: number
+  title: string
+  hint: string
+  done: boolean
+  count?: string
+  last?: boolean
+  children: ReactNode
+}) {
+  return (
+    <section className="relative pl-11">
+      <div
+        className={
+          'absolute left-0 top-0 flex h-7 w-7 items-center justify-center rounded-full ' +
+          'border text-[12px] font-medium tabular-nums transition-colors ' +
+          (done
+            ? 'border-accent bg-accent text-white'
+            : 'border-line-strong bg-surface text-ink-faint')
+        }
+      >
+        {n}
+      </div>
+      {!last && (
+        <div className="absolute left-[13.5px] top-8 bottom-[-28px] w-px bg-line" />
+      )}
+      <div className="flex items-baseline justify-between gap-4">
+        <h2 className="text-[13px] font-medium text-ink">{title}</h2>
+        {count && (
+          <span className="shrink-0 text-xs tabular-nums text-ink-faint">{count}</span>
+        )}
+      </div>
+      <p className="mt-0.5 mb-3 text-[13px] text-ink-muted">{hint}</p>
+      {children}
+    </section>
+  )
+}
+
+/** Readiness indicator in the action bar. */
+function Check({ done, children }: { done: boolean; children: ReactNode }) {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span
+        className={'h-1.5 w-1.5 rounded-full ' + (done ? 'bg-accent' : 'bg-line-strong')}
+      />
+      <span className={done ? 'text-ink' : 'text-ink-faint'}>{children}</span>
+    </span>
+  )
+}
+
+function hostOf(url: string): string | null {
+  try {
+    const u = new URL(url.trim())
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return null
+    return u.hostname.replace(/^www\./, '')
+  } catch {
+    return null
+  }
+}
+
 export default function NewRun({ onStarted }: { onStarted: (runId: string) => void }) {
   const [urls, setUrls] = useState<string[]>([''])
   const [bulk, setBulk] = useState('')
+  const [bulkOpen, setBulkOpen] = useState(false)
   const [csv, setCsv] = useState<Csv | null>(null)
   const [csvError, setCsvError] = useState<string | null>(null)
   const [column, setColumn] = useState(0)
@@ -20,6 +90,8 @@ export default function NewRun({ onStarted }: { onStarted: (runId: string) => vo
   const fileInput = useRef<HTMLInputElement>(null)
 
   const cleanUrls = urls.map((u) => u.trim()).filter(Boolean)
+  const invalidCount = cleanUrls.filter((u) => !hostOf(u)).length
+  const hosts = new Set(cleanUrls.map(hostOf).filter(Boolean) as string[])
   const questions = csv
     ? csv.rows.map((r) => (r[column] ?? '').trim()).filter(Boolean)
     : []
@@ -53,6 +125,7 @@ export default function NewRun({ onStarted }: { onStarted: (runId: string) => vo
       return merged.filter((u, i) => merged.indexOf(u) === i)
     })
     setBulk('')
+    setBulkOpen(false)
   }
 
   function parseFile(file: File) {
@@ -99,108 +172,232 @@ export default function NewRun({ onStarted }: { onStarted: (runId: string) => vo
   }
 
   return (
-    <div className="max-w-3xl px-6 py-8 space-y-8">
-      {/* Policy sources */}
-      <section>
-        <Label hint="Paste multiple lines to add several at once">Policy sources</Label>
-        <p className="-mt-1 mb-3 text-[13px] text-ink-muted">
-          Public URLs of the documents answers must be grounded in.
+    <div className="max-w-3xl px-6 py-8">
+      <div className="mb-8">
+        <h1 className="text-[15px] font-medium text-ink">New run</h1>
+        <p className="mt-1 text-[13px] text-ink-muted">
+          Every answer is checked against a literal quote from your sources. Anything
+          that cannot be grounded is escalated, not guessed.
         </p>
-        <div className="space-y-2">
-          {urls.map((url, i) => (
-            <div key={i} className="flex gap-2">
-              <Input
-                value={url}
-                onChange={(e) => setUrlAt(i, e.target.value)}
-                placeholder="https://handbook.example.com/security/access-control"
-                spellCheck={false}
-              />
-              <Button
-                variant="secondary"
-                className="w-9 px-0 shrink-0"
-                aria-label="Remove source"
-                disabled={urls.length === 1 && !urls[0]}
-                onClick={() =>
-                  setUrls((prev) => {
-                    const next = prev.filter((_, j) => j !== i)
-                    return next.length ? next : ['']
-                  })
-                }
-              >
-                &minus;
-              </Button>
-            </div>
-          ))}
-        </div>
-        <Button
-          variant="ghost"
-          className="mt-2 px-2"
-          onClick={() => setUrls((prev) => [...prev, ''])}
-        >
-          + Add source
-        </Button>
+      </div>
 
-        <div className="mt-5 pt-5 border-t border-line">
-          <Label hint="Separated by commas, spaces or newlines">Or paste a list</Label>
-          <Textarea
-            value={bulk}
-            onChange={(e) => setBulk(e.target.value)}
-            onPaste={(e) => {
-              // A paste into an empty box is almost always the whole list.
-              const text = e.clipboardData.getData('text')
-              if (bulk.trim() || splitUrls(text).length < 2) return
-              e.preventDefault()
-              setBulk(text)
-            }}
-            rows={3}
-            spellCheck={false}
-            placeholder="https://example.com/a, https://example.com/b"
-          />
-          <div className="mt-2 flex items-center gap-3">
-            <Button variant="secondary" disabled={!splitUrls(bulk).length} onClick={addBulk}>
-              Add to sources
-            </Button>
-            {bulk.trim() && (
-              <span className="text-xs text-ink-faint">
-                {splitUrls(bulk).length} link{splitUrls(bulk).length === 1 ? '' : 's'} detected
-              </span>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Questions CSV */}
-      <section>
-        <Label hint="CSV with a header row, one question per row">Questions</Label>
-        <div
-          onDragOver={(e) => {
-            e.preventDefault()
-            setDragging(true)
-          }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={(e) => {
-            e.preventDefault()
-            setDragging(false)
-            const file = e.dataTransfer.files[0]
-            if (file) parseFile(file)
-          }}
-          className={
-            'mt-1 rounded-lg border border-dashed px-6 py-8 text-center transition-colors ' +
-            (dragging ? 'border-accent bg-accent-faint' : 'border-line-strong bg-surface')
+      <div className="space-y-7 pb-24">
+        <Step
+          n={1}
+          title="Policy sources"
+          hint="URLs of the documents answers must be grounded in."
+          done={cleanUrls.length > 0 && invalidCount === 0}
+          count={
+            cleanUrls.length
+              ? `${cleanUrls.length} source${cleanUrls.length === 1 ? '' : 's'} · ${hosts.size} host${hosts.size === 1 ? '' : 's'}`
+              : undefined
           }
         >
-          <p className="text-[13px] text-ink">
-            Drop a CSV here, or{' '}
-            <button
-              className="text-accent font-medium hover:underline"
-              onClick={() => fileInput.current?.click()}
+          <div className="space-y-2">
+            {urls.map((url, i) => {
+              const trimmed = url.trim()
+              const host = hostOf(url)
+              const bad = trimmed !== '' && !host
+              return (
+                <div key={i}>
+                  <div className="flex gap-2">
+                    <Input
+                      value={url}
+                      onChange={(e) => setUrlAt(i, e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && i === urls.length - 1 && trimmed) {
+                          setUrls((prev) => [...prev, ''])
+                        }
+                      }}
+                      placeholder="https://handbook.example.com/security/access-control"
+                      spellCheck={false}
+                      className={bad ? 'border-bad focus:border-bad' : ''}
+                    />
+                    <Button
+                      variant="secondary"
+                      className="w-9 px-0 shrink-0"
+                      aria-label="Remove source"
+                      disabled={urls.length === 1 && !urls[0]}
+                      onClick={() =>
+                        setUrls((prev) => {
+                          const next = prev.filter((_, j) => j !== i)
+                          return next.length ? next : ['']
+                        })
+                      }
+                    >
+                      &minus;
+                    </Button>
+                  </div>
+                  {bad && (
+                    <p className="mt-1 text-xs text-bad">Not a valid http or https URL.</p>
+                  )}
+                  {host && (
+                    <p className="mt-1 font-mono text-[11px] text-ink-faint">{host}</p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="mt-2 flex items-center gap-1">
+            <Button
+              variant="ghost"
+              className="px-2"
+              onClick={() => setUrls((prev) => [...prev, ''])}
             >
-              choose a file
-            </button>
-          </p>
-          <p className="mt-1 text-xs text-ink-faint">
-            {csv ? `${csv.name} — ${csv.rows.length} rows` : 'No file selected'}
-          </p>
+              + Add source
+            </Button>
+            <Button variant="ghost" className="px-2" onClick={() => setBulkOpen((v) => !v)}>
+              {bulkOpen ? 'Hide list paste' : 'Paste a list'}
+            </Button>
+          </div>
+
+          {bulkOpen && (
+            <div className="mt-3 rounded-lg border border-line bg-canvas p-3">
+              <Textarea
+                value={bulk}
+                onChange={(e) => setBulk(e.target.value)}
+                onPaste={(e) => {
+                  // A paste into an empty box is almost always the whole list.
+                  const text = e.clipboardData.getData('text')
+                  if (bulk.trim() || splitUrls(text).length < 2) return
+                  e.preventDefault()
+                  setBulk(text)
+                }}
+                rows={3}
+                autoFocus
+                spellCheck={false}
+                placeholder="Separated by commas, spaces or newlines"
+              />
+              <div className="mt-2 flex items-center gap-3">
+                <Button
+                  variant="secondary"
+                  disabled={!splitUrls(bulk).length}
+                  onClick={addBulk}
+                >
+                  Add to sources
+                </Button>
+                {bulk.trim() && (
+                  <span className="text-xs tabular-nums text-ink-faint">
+                    {splitUrls(bulk).length} link{splitUrls(bulk).length === 1 ? '' : 's'}{' '}
+                    detected
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </Step>
+
+        <Step
+          n={2}
+          title="Questions"
+          hint="A CSV with a header row and one question per row."
+          done={questions.length > 0}
+          count={csv ? `${questions.length} questions` : undefined}
+        >
+          {!csv ? (
+            <div
+              onDragOver={(e) => {
+                e.preventDefault()
+                setDragging(true)
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault()
+                setDragging(false)
+                const file = e.dataTransfer.files[0]
+                if (file) parseFile(file)
+              }}
+              className={
+                'rounded-lg border border-dashed px-6 py-8 text-center transition-colors ' +
+                (dragging ? 'border-accent bg-accent-faint' : 'border-line-strong bg-surface')
+              }
+            >
+              <p className="text-[13px] text-ink">
+                Drop a CSV here, or{' '}
+                <button
+                  className="font-medium text-accent hover:underline"
+                  onClick={() => fileInput.current?.click()}
+                >
+                  choose a file
+                </button>
+              </p>
+              <p className="mt-1 text-xs text-ink-faint">No file selected</p>
+            </div>
+          ) : (
+            <div className="overflow-hidden rounded-lg border border-line bg-surface">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-3">
+                <div className="min-w-0">
+                  <div className="truncate font-mono text-[12px] text-ink">{csv.name}</div>
+                  <div className="mt-0.5 text-xs tabular-nums text-ink-faint">
+                    {csv.rows.length} rows &middot; {csv.headers.length} columns &middot;{' '}
+                    {questions.length} usable
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 text-[13px] text-ink-muted">
+                    Question column
+                    <select
+                      value={column}
+                      onChange={(e) => setColumn(Number(e.target.value))}
+                      className="h-8 rounded-md border border-line-strong bg-surface px-2 text-[13px]"
+                    >
+                      {csv.headers.map((h, i) => (
+                        <option key={i} value={i}>
+                          {h?.trim() || `Column ${i + 1}`}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <Button variant="secondary" onClick={() => fileInput.current?.click()}>
+                    Replace
+                  </Button>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[13px]">
+                  <thead>
+                    <tr className="border-b border-line">
+                      {csv.headers.map((h, i) => (
+                        <th
+                          key={i}
+                          className={
+                            'whitespace-nowrap px-4 py-2 text-left font-medium ' +
+                            (i === column ? 'text-accent' : 'text-ink-muted')
+                          }
+                        >
+                          {h?.trim() || `Column ${i + 1}`}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {csv.rows.slice(0, 5).map((row, r) => (
+                      <tr key={r} className="border-b border-line last:border-0">
+                        {csv.headers.map((_, c) => (
+                          <td
+                            key={c}
+                            className={
+                              'max-w-[320px] truncate px-4 py-2 align-top ' +
+                              (c === column ? 'text-ink' : 'text-ink-faint')
+                            }
+                          >
+                            {row[c]}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {csv.rows.length > 5 && (
+                <div className="border-t border-line px-4 py-2 text-xs tabular-nums text-ink-faint">
+                  Showing 5 of {csv.rows.length} rows
+                </div>
+              )}
+            </div>
+          )}
+
           <input
             ref={fileInput}
             type="file"
@@ -212,100 +409,62 @@ export default function NewRun({ onStarted }: { onStarted: (runId: string) => vo
               e.target.value = ''
             }}
           />
-        </div>
 
-        {csvError && <div className="mt-3">
-          <FieldError>{csvError}</FieldError>
-        </div>}
+          {csvError && (
+            <div className="mt-3">
+              <FieldError>{csvError}</FieldError>
+            </div>
+          )}
+        </Step>
 
-        {csv && (
-          <div className="mt-4 border border-line rounded-lg overflow-hidden bg-surface">
-            <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-line">
-              <span className="text-[13px] font-medium text-ink">
-                Preview — first {Math.min(5, csv.rows.length)} of {csv.rows.length}
-              </span>
-              <label className="flex items-center gap-2 text-[13px] text-ink-muted">
-                Question column
-                <select
-                  value={column}
-                  onChange={(e) => setColumn(Number(e.target.value))}
-                  className="h-8 px-2 text-[13px] bg-surface border border-line-strong rounded-md"
-                >
-                  {csv.headers.map((h, i) => (
-                    <option key={i} value={i}>
-                      {h?.trim() || `Column ${i + 1}`}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-[13px]">
-                <thead>
-                  <tr className="border-b border-line">
-                    {csv.headers.map((h, i) => (
-                      <th
-                        key={i}
-                        className={
-                          'text-left font-medium px-4 py-2 whitespace-nowrap ' +
-                          (i === column ? 'text-accent' : 'text-ink-muted')
-                        }
-                      >
-                        {h?.trim() || `Column ${i + 1}`}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {csv.rows.slice(0, 5).map((row, r) => (
-                    <tr key={r} className="border-b border-line last:border-0">
-                      {csv.headers.map((_, c) => (
-                        <td
-                          key={c}
-                          className={
-                            'px-4 py-2 align-top max-w-[320px] truncate ' +
-                            (c === column ? 'text-ink' : 'text-ink-faint')
-                          }
-                        >
-                          {row[c]}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        <Step
+          n={3}
+          title="Send results to"
+          hint="The finished table is emailed here. You can also resend it later."
+          done={emailValid}
+          last
+        >
+          <div className="max-w-sm">
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="security@vendor.com"
+              className={
+                email.trim() !== '' && !emailValid ? 'border-bad focus:border-bad' : ''
+              }
+            />
+            {email.trim() !== '' && !emailValid && (
+              <p className="mt-1 text-xs text-bad">Enter a valid email address.</p>
+            )}
           </div>
-        )}
-      </section>
+        </Step>
 
-      {/* Recipient */}
-      <section className="max-w-sm">
-        <Label>Send results to</Label>
-        <Input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="security@vendor.com"
-        />
-        {email.trim() !== '' && !emailValid && (
-          <p className="mt-2 text-xs text-bad">Enter a valid email address.</p>
-        )}
-      </section>
+        {error && <FieldError>{error}</FieldError>}
+      </div>
 
-      {error && <FieldError>{error}</FieldError>}
-
-      <div className="flex items-center gap-4 pt-2 border-t border-line">
-        <Button className="mt-6" disabled={!ready || submitting} onClick={submit}>
-          {submitting ? 'Starting…' : 'Run'}
-        </Button>
-        <p className="mt-6 text-[13px] text-ink-muted">
-          {ready
-            ? `${questions.length} questions against ${cleanUrls.length} source${
-                cleanUrls.length === 1 ? '' : 's'
-              }`
-            : 'Add sources, questions, and a recipient to run.'}
-        </p>
+      <div className="sticky bottom-0 -mx-6 border-t border-line bg-surface px-6 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-4 text-[13px]">
+            <Check done={cleanUrls.length > 0 && invalidCount === 0}>
+              {cleanUrls.length
+                ? `${cleanUrls.length} source${cleanUrls.length === 1 ? '' : 's'}`
+                : 'Sources'}
+            </Check>
+            <Check done={questions.length > 0}>
+              {questions.length ? `${questions.length} questions` : 'Questions'}
+            </Check>
+            <Check done={emailValid}>{emailValid ? email.trim() : 'Recipient'}</Check>
+            {invalidCount > 0 && (
+              <span className="text-[13px] text-bad">
+                {invalidCount} invalid URL{invalidCount === 1 ? '' : 's'}
+              </span>
+            )}
+          </div>
+          <Button disabled={!ready || submitting} onClick={submit}>
+            {submitting ? 'Starting…' : 'Run questionnaire'}
+          </Button>
+        </div>
       </div>
     </div>
   )
