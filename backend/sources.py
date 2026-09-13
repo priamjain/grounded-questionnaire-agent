@@ -79,7 +79,11 @@ async def fetch_one(client: httpx.AsyncClient, url: str) -> str:
             async for chunk in response.aiter_bytes():
                 size += len(chunk)
                 if size > MAX_BYTES:
-                    raise SourceError(f"exceeded the {MAX_BYTES // 1024}KB cap")
+                    raise SourceError(
+                        f"exceeded the {MAX_BYTES // 1024}KB cap — if this is a "
+                        "single document, the page is probably a JavaScript app "
+                        "shell rather than the text itself"
+                    )
                 chunks.append(chunk)
             content_type = response.headers.get("content-type", "")
         body = b"".join(chunks).decode("utf-8", errors="replace")
@@ -110,5 +114,9 @@ async def build_corpus(urls: list[str]) -> tuple[str, list[str]]:
                 if text.strip():
                     parts.append(f"--- SOURCE: {url} ---\n{text}")
                 else:
-                    errors.append(f"{url}: no readable text")
+                    errors.append(
+                        f"{url}: fetched OK but contains no readable text — the "
+                        "page renders its content with JavaScript, which this "
+                        "fetcher does not execute"
+                    )
     return "\n\n".join(parts), errors
